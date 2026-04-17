@@ -1,24 +1,135 @@
-<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1600" height="520" fill="#07111F"/>
-  <rect x="42" y="42" width="1516" height="436" rx="26" fill="url(#bg)"/>
-  <circle cx="1320" cy="118" r="170" fill="#0C223D" fill-opacity="0.85"/>
-  <circle cx="1388" cy="388" r="150" fill="#123357" fill-opacity="0.55"/>
-  <path d="M185 332L308 142H430L308 332H185Z" fill="#1CC8A0"/>
-  <path d="M308 332L430 142H552L430 332H308Z" fill="#29E0B6"/>
-  <path d="M430 332L552 142H674L552 332H430Z" fill="#87F3DA"/>
-  <rect x="736" y="138" width="10" height="214" rx="5" fill="#7CD6F7"/>
-  <rect x="782" y="184" width="10" height="168" rx="5" fill="#7CD6F7" fill-opacity="0.7"/>
-  <rect x="828" y="112" width="10" height="240" rx="5" fill="#7CD6F7" fill-opacity="0.88"/>
-  <rect x="874" y="218" width="10" height="134" rx="5" fill="#7CD6F7" fill-opacity="0.58"/>
-  <text x="736" y="208" fill="#F5FBFF" font-family="SF Pro Display, Helvetica, Arial, sans-serif" font-size="78" font-weight="700">sensortower</text>
-  <text x="736" y="266" fill="#A9C3D9" font-family="SF Pro Text, Helvetica, Arial, sans-serif" font-size="28" font-weight="500">Terminal-first access to iOS market data</text>
-  <text x="736" y="318" fill="#7CD6F7" font-family="SF Mono, Menlo, Consolas, monospace" font-size="24">publishers.apps    apps.get    charts.category-rankings</text>
-  <rect x="736" y="350" width="340" height="44" rx="22" fill="#0A2037"/>
-  <text x="764" y="379" fill="#D8F7EF" font-family="SF Pro Text, Helvetica, Arial, sans-serif" font-size="22">JSON-first • CI-ready • Go binary</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" fill="none">
   <defs>
-    <linearGradient id="bg" x1="116" y1="84" x2="1494" y2="456" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0B1B30"/>
-      <stop offset="1" stop-color="#102A49"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08111E"/>
+      <stop offset="52%" stop-color="#0F1B2C"/>
+      <stop offset="100%" stop-color="#0C1625"/>
     </linearGradient>
+    <radialGradient id="glow1" cx="920" cy="180" r="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22C55E" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#22C55E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="220" cy="320" r="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="termBg" x1="660" y1="60" x2="660" y2="365" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#171E2B"/>
+      <stop offset="100%" stop-color="#111723"/>
+    </linearGradient>
+    <linearGradient id="termBorder" x1="660" y1="60" x2="660" y2="365" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2B3447"/>
+      <stop offset="100%" stop-color="#1B2333"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.025" stroke-width="0.5"/>
+    </pattern>
   </defs>
+
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  <rect width="1200" height="400" fill="url(#grid)"/>
+  <rect width="1200" height="400" fill="url(#glow1)"/>
+  <rect width="1200" height="400" fill="url(#glow2)"/>
+
+  <circle cx="104" cy="74" r="1.5" fill="#38BDF8" opacity="0.28"/>
+  <circle cx="184" cy="52" r="1" fill="#22C55E" opacity="0.22"/>
+  <circle cx="1084" cy="344" r="1.5" fill="#38BDF8" opacity="0.18"/>
+  <circle cx="1052" cy="66" r="1" fill="#86EFAC" opacity="0.15"/>
+  <circle cx="58" cy="330" r="1" fill="#34D399" opacity="0.18"/>
+
+  <g transform="translate(80, 110)">
+    <rect x="0" y="0" width="52" height="52" rx="12" fill="#38BDF8" opacity="0.12"/>
+    <text x="26" y="34" font-family="SF Mono, Menlo, Consolas, monospace" font-size="28" fill="#67E8F9" text-anchor="middle" font-weight="600">ST</text>
+
+    <text x="66" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="36" fill="#F8FAFC" font-weight="700" letter-spacing="-0.5">sensortower</text>
+    <text x="66" y="46" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#64748B" font-weight="500" letter-spacing="3">CLI</text>
+  </g>
+
+  <text x="80" y="210" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#94A3B8" font-weight="400">
+    Sensor Tower iOS market data from your terminal.
+  </text>
+  <text x="80" y="236" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#94A3B8" font-weight="400">
+    Read-only. Scriptable. Session-ready.
+  </text>
+
+  <g transform="translate(80, 268)">
+    <rect x="0" y="0" width="96" height="28" rx="14" fill="#38BDF8" opacity="0.1" stroke="#38BDF8" stroke-opacity="0.22" stroke-width="1"/>
+    <text x="48" y="18" font-family="SF Mono, Menlo, monospace" font-size="11" fill="#7DD3FC" text-anchor="middle" font-weight="500">Go · iOS APIs</text>
+
+    <rect x="106" y="0" width="104" height="28" rx="14" fill="#22C55E" opacity="0.1" stroke="#22C55E" stroke-opacity="0.22" stroke-width="1"/>
+    <text x="158" y="18" font-family="SF Mono, Menlo, monospace" font-size="11" fill="#86EFAC" text-anchor="middle" font-weight="500">JSON output</text>
+
+    <rect x="220" y="0" width="124" height="28" rx="14" fill="#F59E0B" opacity="0.1" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1"/>
+    <text x="282" y="18" font-family="SF Mono, Menlo, monospace" font-size="11" fill="#FCD34D" text-anchor="middle" font-weight="500">category-rankings</text>
+  </g>
+
+  <line x1="80" y1="320" x2="440" y2="320" stroke="#1E293B" stroke-width="1"/>
+  <text x="80" y="348" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#475569">github.com/ferdikt/sensortower-cli</text>
+
+  <g transform="translate(500, 40)">
+    <rect x="0" y="0" width="640" height="345" rx="12" fill="url(#termBorder)"/>
+    <rect x="1" y="1" width="638" height="343" rx="11" fill="url(#termBg)"/>
+
+    <rect x="1" y="1" width="638" height="36" rx="11" fill="#1C2433"/>
+    <rect x="1" y="26" width="638" height="11" fill="#1C2433"/>
+    <circle cx="22" cy="19" r="6" fill="#FF5F57"/>
+    <circle cx="42" cy="19" r="6" fill="#FEBC2E"/>
+    <circle cx="62" cy="19" r="6" fill="#28C840"/>
+    <text x="320" y="23" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12" fill="#64748B" text-anchor="middle">sensortower — zsh</text>
+    <line x1="1" y1="37" x2="639" y2="37" stroke="#2D3548" stroke-width="0.5"/>
+
+    <g transform="translate(24, 58)">
+      <text y="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="13">
+        <tspan fill="#6B7280">$</tspan>
+        <tspan fill="#E2E8F0"> sensortower publishers apps </tspan>
+        <tspan fill="#FBBF24">--publisher-id 1619264551</tspan>
+      </text>
+
+      <text y="24" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5">
+        <tspan fill="#34D399">✓</tspan>
+        <tspan fill="#94A3B8"> Loaded config</tspan>
+      </text>
+      <text y="44" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5">
+        <tspan fill="#34D399">✓</tspan>
+        <tspan fill="#94A3B8"> Base URL resolved</tspan>
+        <tspan fill="#475569"> · </tspan>
+        <tspan fill="#7DD3FC">app.sensortower.com</tspan>
+      </text>
+      <text y="64" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5">
+        <tspan fill="#34D399">✓</tspan>
+        <tspan fill="#94A3B8"> Public endpoint reachable</tspan>
+      </text>
+      <text y="84" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5">
+        <tspan fill="#34D399">✓</tspan>
+        <tspan fill="#94A3B8"> Returned 5 apps</tspan>
+      </text>
+
+      <text y="120" font-family="SF Mono, Menlo, Consolas, monospace" font-size="13">
+        <tspan fill="#6B7280">$</tspan>
+        <tspan fill="#E2E8F0"> sensortower charts category-rankings </tspan>
+        <tspan fill="#FBBF24">--date 2026-04-16</tspan>
+      </text>
+
+      <text y="144" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" fill="#94A3B8">{</text>
+      <text y="162" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" xml:space="preserve">
+        <tspan fill="#94A3B8">  "</tspan><tspan fill="#7DD3FC">free</tspan><tspan fill="#94A3B8">": [</tspan>
+      </text>
+      <text y="180" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" xml:space="preserve">
+        <tspan fill="#94A3B8">    { "</tspan><tspan fill="#7DD3FC">rank</tspan><tspan fill="#94A3B8">": </tspan><tspan fill="#86EFAC">1</tspan><tspan fill="#94A3B8">, "</tspan><tspan fill="#7DD3FC">name</tspan><tspan fill="#94A3B8">": "</tspan><tspan fill="#C4B5FD">ChatGPT</tspan><tspan fill="#94A3B8">" },</tspan>
+      </text>
+      <text y="198" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" xml:space="preserve">
+        <tspan fill="#94A3B8">    { "</tspan><tspan fill="#7DD3FC">rank</tspan><tspan fill="#94A3B8">": </tspan><tspan fill="#86EFAC">2</tspan><tspan fill="#94A3B8">, "</tspan><tspan fill="#7DD3FC">name</tspan><tspan fill="#94A3B8">": "</tspan><tspan fill="#C4B5FD">TurboTax</tspan><tspan fill="#94A3B8">" },</tspan>
+      </text>
+      <text y="216" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" xml:space="preserve">
+        <tspan fill="#94A3B8">    { "</tspan><tspan fill="#7DD3FC">rank</tspan><tspan fill="#94A3B8">": </tspan><tspan fill="#86EFAC">3</tspan><tspan fill="#94A3B8">, "</tspan><tspan fill="#7DD3FC">name</tspan><tspan fill="#94A3B8">": "</tspan><tspan fill="#C4B5FD">Claude</tspan><tspan fill="#94A3B8">" }</tspan>
+      </text>
+      <text y="234" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" xml:space="preserve" fill="#94A3B8">
+        <tspan>  ],</tspan>
+      </text>
+      <text y="252" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" xml:space="preserve">
+        <tspan fill="#94A3B8">  "</tspan><tspan fill="#7DD3FC">date</tspan><tspan fill="#94A3B8">": "</tspan><tspan fill="#FCA5A5">2026-04-16</tspan><tspan fill="#94A3B8">"</tspan>
+      </text>
+      <text y="270" x="0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" fill="#94A3B8">}</text>
+    </g>
+  </g>
 </svg>
