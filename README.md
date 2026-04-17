@@ -31,11 +31,11 @@
 
 | | |
 |---|---|
-| 📊 **Three useful starting endpoints** | Publisher apps, app details, and category rankings |
+| 📊 **Core market workflows** | Publisher apps, app details, rankings, competitors, and ASO helpers |
 | 🧰 **JSON-first output** | Pipe to `jq`, store snapshots, build quick analyses |
 | 🪶 **Small surface area** | Explicit commands for known endpoints, no generic wrapper noise |
 | 🔐 **Session-ready design** | Optional cookie + header injection via config/env |
-| 🚀 **Release-friendly** | Go binary, GitHub releases, Homebrew-ready workflow |
+| 🚀 **Automation-friendly** | Retry, cache, contexts, batch reads, export files, Homebrew workflow |
 
 ---
 
@@ -126,6 +126,9 @@ sensortower charts category-rankings \
 | `publishers` | `apps` | List apps for a publisher |
 | `apps` | `get` | Fetch a single iOS app detail payload |
 | `charts` | `category-rankings` | Fetch free/grossing/paid rankings |
+| `contexts` | `add` · `list` · `use` | Manage named configs for multiple setups |
+| `workflow` | `competitors` | Pull rankings, dedupe competitors, enrich app metadata |
+| `aso` | `metadata-audit` · `keyword-gap` | Generate ASO-oriented diagnostics |
 | `agent` | `install-skill` · `link-skill` · `show-skill-path` | Install or link the bundled Codex skill |
 | `version` | — | Print binary version |
 
@@ -167,6 +170,57 @@ Current global flags:
 
 ```bash
 sensortower --config /path/to/config.json --output json ...
+```
+
+Useful automation flags:
+
+```bash
+sensortower --context team-a \
+  --retry-429 --retry-max 8 --retry-wait 60 \
+  --cache-ttl 300 \
+  --output-format jsonl \
+  --output-file ./out.jsonl ...
+```
+
+---
+
+## 🔎 Batch, Workflow, ASO
+
+Batch app metadata:
+
+```bash
+sensortower apps get \
+  --app-ids-file ids.txt \
+  --country US \
+  --fields name,subtitle,description.full_description \
+  --output-format jsonl \
+  --output-file ./apps.jsonl
+```
+
+Competitor workflow:
+
+```bash
+sensortower workflow competitors \
+  --country US \
+  --categories 7018,7019 \
+  --top 200 \
+  --output-format json \
+  --output-file ./competitors.json
+```
+
+ASO helpers:
+
+```bash
+sensortower aso metadata-audit --app-id 6478631467 --country US --output json
+sensortower aso keyword-gap --app-id 6478631467 --competitor-ids-file competitor_ids.txt --country US --output json
+```
+
+Contexts:
+
+```bash
+sensortower contexts add --name team-a --cookie 'sensor_tower_session=...' --headers-json '{"X-Custom":"1"}'
+sensortower contexts use --name team-a
+sensortower contexts list --output json
 ```
 
 ---

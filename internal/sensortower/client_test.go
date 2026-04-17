@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/ferdikt/sensortower-cli/internal/cache"
 )
 
 func TestPublisherAppsURLConstruction(t *testing.T) {
@@ -23,7 +26,7 @@ func TestPublisherAppsURLConstruction(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Options{BaseURL: server.URL, TimeoutSeconds: 5})
-	if _, err := client.PublisherApps(context.Background(), 1619264551, 25, 10, "downloads"); err != nil {
+	if _, _, err := client.PublisherApps(context.Background(), 1619264551, 25, 10, "downloads"); err != nil {
 		t.Fatalf("PublisherApps() error = %v", err)
 	}
 
@@ -49,7 +52,7 @@ func TestAppDetailsURLConstruction(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Options{BaseURL: server.URL, TimeoutSeconds: 5})
-	if _, err := client.AppDetails(context.Background(), 6478631467, "US"); err != nil {
+	if _, _, err := client.AppDetails(context.Background(), 6478631467, "US"); err != nil {
 		t.Fatalf("AppDetails() error = %v", err)
 	}
 
@@ -73,7 +76,7 @@ func TestCategoryRankingsURLConstruction(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Options{BaseURL: server.URL, TimeoutSeconds: 5})
-	if _, err := client.CategoryRankings(context.Background(), "US", 0, "2026-04-16", "iphone", 25, 0); err != nil {
+	if _, _, err := client.CategoryRankings(context.Background(), "US", 0, "2026-04-16", "iphone", 25, 0); err != nil {
 		t.Fatalf("CategoryRankings() error = %v", err)
 	}
 
@@ -102,7 +105,7 @@ func TestClientInjectsCookieAndHeaders(t *testing.T) {
 		Cookie:         "session=abc",
 		Headers:        map[string]string{"X-Test": "1"},
 	})
-	if _, err := client.PublisherApps(context.Background(), 1, 25, 0, "downloads"); err != nil {
+	if _, _, err := client.PublisherApps(context.Background(), 1, 25, 0, "downloads"); err != nil {
 		t.Fatalf("PublisherApps() error = %v", err)
 	}
 
@@ -147,6 +150,75 @@ func TestFixtureDecoding(t *testing.T) {
 			t.Fatal("expected free rankings data")
 		}
 	})
+}
+
+func TestAppDetailsRetries429(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.Header().Set("X-RateLimit-Remaining", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"error":"slow down"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"app_id":6478631467,"name":"Playlist Transfer","publisher_name":"Virals"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Options{
+		BaseURL:        server.URL,
+		TimeoutSeconds: 5,
+		Retry429:       true,
+		RetryMax:       2,
+		RetryWait:      1,
+	})
+	resp, meta, err := client.AppDetails(context.Background(), 6478631467, "US")
+	if err != nil {
+		t.Fatalf("AppDetails() error = %v", err)
+	}
+	if resp.AppID != 6478631467 {
+		t.Fatalf("app id = %d", resp.AppID)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want 2", attempts)
+	}
+	if meta == nil || meta.Retried != 1 {
+		t.Fatalf("meta retried = %+v", meta)
+	}
+	if meta.RateLimitHeaders["x_ratelimit_remaining"] != "0" {
+		t.Fatalf("rate limit headers = %+v", meta.RateLimitHeaders)
+	}
+}
+
+func TestAppDetailsUsesCache(t *testing.T) {
+	cacheDir := t.TempDir()
+	hits := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		_, _ = w.Write([]byte(`{"app_id":6478631467,"name":"Playlist Transfer","publisher_name":"Virals"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Options{
+		BaseURL:        server.URL,
+		TimeoutSeconds: 5,
+		Cache:          cache.New(cacheDir, 5*time.Second),
+	})
+	if _, meta, err := client.AppDetails(context.Background(), 6478631467, "US"); err != nil {
+		t.Fatalf("first AppDetails() error = %v", err)
+	} else if meta == nil || meta.Cached {
+		t.Fatalf("first meta = %+v", meta)
+	}
+	if _, meta, err := client.AppDetails(context.Background(), 6478631467, "US"); err != nil {
+		t.Fatalf("second AppDetails() error = %v", err)
+	} else if meta == nil || !meta.Cached {
+		t.Fatalf("second meta = %+v", meta)
+	}
+	if hits != 1 {
+		t.Fatalf("hits = %d, want 1", hits)
+	}
 }
 
 func assertQuery(t *testing.T, query map[string]string, key, want string) {

@@ -1,6 +1,9 @@
 package sensortower
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type PublisherAppsResponse struct {
 	Meta PublisherAppsMeta `json:"meta"`
@@ -67,11 +70,17 @@ type AppDetails struct {
 	MinimumOSVersion            string           `json:"minimum_os_version"`
 	Subtitle                    string           `json:"subtitle"`
 	PromoText                   string           `json:"promo_text"`
+	Description                 Description      `json:"description"`
+	SupportedLanguages          []string         `json:"supported_languages"`
 	HasInAppPurchases           bool             `json:"has_in_app_purchases"`
 	WorldwideLastMonthRevenue   MonetaryMetric   `json:"worldwide_last_month_revenue"`
 	WorldwideLastMonthDownloads CountMetric      `json:"worldwide_last_month_downloads"`
 	CategoryRankings            CategoryRankings `json:"category_rankings"`
 	Raw                         map[string]any   `json:"-"`
+}
+
+type Description struct {
+	FullDescription string `json:"full_description"`
 }
 
 type MonetaryMetric struct {
@@ -137,6 +146,50 @@ type CategoryRankingEntry struct {
 	Rating                      float64         `json:"rating"`
 	RatingCount                 int64           `json:"rating_count"`
 	AppOverviewURL              string          `json:"app_overview_url"`
+}
+
+type ResponseMeta struct {
+	Cached            bool              `json:"cached,omitempty"`
+	Retried           int               `json:"retried,omitempty"`
+	RetryAfterSeconds int               `json:"retry_after_seconds,omitempty"`
+	RateLimitHeaders  map[string]string `json:"rate_limit_headers,omitempty"`
+	RequestURL        string            `json:"request_url,omitempty"`
+}
+
+type AppsBatchResult struct {
+	OK     []map[string]any   `json:"ok"`
+	Failed []AppsBatchFailure `json:"failed"`
+	Meta   ResponseMeta       `json:"meta"`
+}
+
+type AppsBatchFailure struct {
+	AppID int64  `json:"app_id"`
+	Error string `json:"error"`
+}
+
+type CompetitorRecord struct {
+	AppID             int64            `json:"app_id"`
+	Name              string           `json:"name"`
+	PublisherName     string           `json:"publisher_name"`
+	Country           string           `json:"country"`
+	Categories        []int            `json:"categories"`
+	Buckets           []string         `json:"buckets"`
+	ObservedRanks     []map[string]any `json:"observed_ranks"`
+	Enriched          map[string]any   `json:"enriched,omitempty"`
+	MetadataFetchedAt time.Time        `json:"metadata_fetched_at,omitempty"`
+}
+
+type MetadataAudit struct {
+	AppID    int64    `json:"app_id"`
+	Name     string   `json:"name"`
+	Issues   []string `json:"issues"`
+	Keywords []string `json:"keywords,omitempty"`
+}
+
+type KeywordGapResult struct {
+	TargetAppID      int64    `json:"target_app_id"`
+	CompetitorAppIDs []int64  `json:"competitor_app_ids"`
+	MissingKeywords  []string `json:"missing_keywords"`
 }
 
 type Price struct {
