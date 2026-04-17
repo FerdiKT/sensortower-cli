@@ -122,6 +122,44 @@ func (c *Client) CategoryRankings(ctx context.Context, country string, category 
 	return &out, meta, nil
 }
 
+func (c *Client) AppAutocomplete(ctx context.Context, term, os string, limit int, expandEntities, flags, markUsageDisabledApps bool) ([]map[string]any, *ResponseMeta, error) {
+	var out autocompleteSearchResponse
+	meta, err := c.getJSON(ctx, "/api/autocomplete_search", map[string]string{
+		"entity_type":              "app",
+		"term":                     term,
+		"os":                       os,
+		"limit":                    strconv.Itoa(limit),
+		"expand_entities":          strconv.FormatBool(expandEntities),
+		"flags":                    strconv.FormatBool(flags),
+		"mark_usage_disabled_apps": strconv.FormatBool(markUsageDisabledApps),
+	}, &out)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out.Data.Entities, meta, nil
+}
+
+func (c *Client) PublisherAutocomplete(ctx context.Context, term, os string, limit int, includeExtendedInfo bool) ([]map[string]any, *ResponseMeta, error) {
+	var out autocompleteSearchResponse
+	meta, err := c.getJSON(ctx, "/api/autocomplete_search", map[string]string{
+		"entity_type":           "publisher",
+		"term":                  term,
+		"os":                    os,
+		"limit":                 strconv.Itoa(limit),
+		"include_extended_info": strconv.FormatBool(includeExtendedInfo),
+	}, &out)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out.Data.Entities, meta, nil
+}
+
+type autocompleteSearchResponse struct {
+	Data struct {
+		Entities []map[string]any `json:"entities"`
+	} `json:"data"`
+}
+
 func (c *Client) getJSON(ctx context.Context, path string, query map[string]string, dst any) (*ResponseMeta, error) {
 	endpoint, err := url.Parse(c.baseURL + path)
 	if err != nil {

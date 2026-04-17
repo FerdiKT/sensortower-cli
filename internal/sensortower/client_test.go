@@ -88,6 +88,54 @@ func TestCategoryRankingsURLConstruction(t *testing.T) {
 	assertQuery(t, gotQuery, "offset", "0")
 }
 
+func TestAppAutocompleteURLConstruction(t *testing.T) {
+	var gotQuery = map[string]string{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for key, values := range r.URL.Query() {
+			gotQuery[key] = values[0]
+		}
+		_, _ = w.Write([]byte(`{"data":{"entities":[]}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Options{BaseURL: server.URL, TimeoutSeconds: 5})
+	if _, _, err := client.AppAutocomplete(context.Background(), "ferdi", "both_stores", 20, true, false, false); err != nil {
+		t.Fatalf("AppAutocomplete() error = %v", err)
+	}
+
+	assertQuery(t, gotQuery, "entity_type", "app")
+	assertQuery(t, gotQuery, "term", "ferdi")
+	assertQuery(t, gotQuery, "os", "both_stores")
+	assertQuery(t, gotQuery, "limit", "20")
+	assertQuery(t, gotQuery, "expand_entities", "true")
+	assertQuery(t, gotQuery, "flags", "false")
+	assertQuery(t, gotQuery, "mark_usage_disabled_apps", "false")
+}
+
+func TestPublisherAutocompleteURLConstruction(t *testing.T) {
+	var gotQuery = map[string]string{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for key, values := range r.URL.Query() {
+			gotQuery[key] = values[0]
+		}
+		_, _ = w.Write([]byte(`{"data":{"entities":[]}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Options{BaseURL: server.URL, TimeoutSeconds: 5})
+	if _, _, err := client.PublisherAutocomplete(context.Background(), "ferdi", "both_stores", 20, false); err != nil {
+		t.Fatalf("PublisherAutocomplete() error = %v", err)
+	}
+
+	assertQuery(t, gotQuery, "entity_type", "publisher")
+	assertQuery(t, gotQuery, "term", "ferdi")
+	assertQuery(t, gotQuery, "os", "both_stores")
+	assertQuery(t, gotQuery, "limit", "20")
+	assertQuery(t, gotQuery, "include_extended_info", "false")
+}
+
 func TestClientInjectsCookieAndHeaders(t *testing.T) {
 	var gotCookie string
 	var gotHeader string

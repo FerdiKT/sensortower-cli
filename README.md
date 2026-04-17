@@ -123,6 +123,7 @@ sensortower charts category-rankings \
 
 | Group | Commands | Purpose |
 |---|---|---|
+| `search` | `apps` · `publishers` | Search app and publisher autocomplete endpoints |
 | `publishers` | `apps` | List apps for a publisher |
 | `apps` | `get` | Fetch a single iOS app detail payload |
 | `charts` | `category-rankings` | Fetch free/grossing/paid rankings |
@@ -185,6 +186,13 @@ sensortower --context team-a \
 ---
 
 ## 🔎 Batch, Workflow, ASO
+
+Autocomplete search:
+
+```bash
+sensortower search apps --term ferdi --output json
+sensortower search publishers --term ferdi --output json
+```
 
 Batch app metadata:
 
