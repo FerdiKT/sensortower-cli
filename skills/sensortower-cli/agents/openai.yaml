@@ -1,0 +1,3 @@
+display_name: Sensor Tower CLI
+short_description: Work with the local Sensor Tower CLI for iOS market data, JSON reads, and release maintenance.
+default_prompt: Use the local sensortower CLI. Prefer public endpoint reads first, prefer JSON output for agent workflows, preserve upstream payload shapes, and validate with repo smoke checks after changes.

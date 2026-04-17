@@ -126,6 +126,7 @@ sensortower charts category-rankings \
 | `publishers` | `apps` | List apps for a publisher |
 | `apps` | `get` | Fetch a single iOS app detail payload |
 | `charts` | `category-rankings` | Fetch free/grossing/paid rankings |
+| `agent` | `install-skill` · `link-skill` · `show-skill-path` | Install or link the bundled Codex skill |
 | `version` | — | Print binary version |
 
 ---
@@ -166,6 +167,30 @@ Current global flags:
 
 ```bash
 sensortower --config /path/to/config.json --output json ...
+```
+
+---
+
+## 🤖 Agent Workflow
+
+Repo-local guidance lives in [`AGENTS.md`](.agents/AGENTS.md) and the bundled skill at [`skills/sensortower-cli/SKILL.md`](skills/sensortower-cli/SKILL.md).
+
+To install the bundled Codex skill directly from the CLI:
+
+```bash
+sensortower agent install-skill
+```
+
+For local development, if you want a symlink instead of a copied install:
+
+```bash
+sensortower agent link-skill --source ./skills/sensortower-cli
+```
+
+To inspect the target install path:
+
+```bash
+sensortower agent show-skill-path
 ```
 
 ---
