@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"context"
+	"fmt"
+	"os"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/ferdikt/sensortower-cli/internal/clierror"
@@ -17,6 +21,7 @@ func init() {
 	workflowCompetitorsCmd.Flags().Int("top", 200, "Maximum unique apps to enrich")
 	workflowCompetitorsCmd.Flags().String("device", "iphone", "Device type")
 	workflowCompetitorsCmd.Flags().String("date", time.Now().AddDate(0, 0, -1).Format("2006-01-02"), "Chart date in YYYY-MM-DD")
+	workflowCompetitorsCmd.Flags().Int("concurrency", 4, "Concurrent app metadata enrich requests")
 	_ = workflowCompetitorsCmd.MarkFlagRequired("categories")
 }
 
@@ -35,26 +40,23 @@ var workflowCompetitorsCmd = &cobra.Command{
 		device, _ := cmd.Flags().GetString("device")
 		top, _ := cmd.Flags().GetInt("top")
 		date, _ := cmd.Flags().GetString("date")
+		concurrency, _ := cmd.Flags().GetInt("concurrency")
 		categories, err := parseInts(categoriesText)
 		if err != nil {
 			return clierror.Wrap(11, err.Error())
 		}
+		if top <= 0 {
+			return clierror.Wrap(11, "top must be greater than 0")
+		}
 		seen := map[int64]*sensortower.CompetitorRecord{}
 		for _, category := range categories {
-			offset := 0
-			for len(seen) < top {
-				resp, _, err := client.CategoryRankings(commandContext(cmd), country, category, date, device, 25, offset)
-				if err != nil {
-					return err
-				}
-				addCompetitorBucket(seen, category, "free", country, resp.Data.Free)
-				addCompetitorBucket(seen, category, "grossing", country, resp.Data.Grossing)
-				addCompetitorBucket(seen, category, "paid", country, resp.Data.Paid)
-				if bucketCount(resp) < 25 {
-					break
-				}
-				offset += 25
+			resp, _, err := client.CategoryRankings(commandContext(cmd), country, category, date, device, categoryRankingsPageCap, 0)
+			if err != nil {
+				return err
 			}
+			addCompetitorBucket(seen, category, "free", country, resp.Data.Free)
+			addCompetitorBucket(seen, category, "grossing", country, resp.Data.Grossing)
+			addCompetitorBucket(seen, category, "paid", country, resp.Data.Paid)
 		}
 		appIDs := make([]int64, 0, len(seen))
 		for appID := range seen {
@@ -73,13 +75,11 @@ var workflowCompetitorsCmd = &cobra.Command{
 		if len(appIDs) > top {
 			appIDs = appIDs[:top]
 		}
+		if err := enrichCompetitors(commandContext(cmd), client, seen, appIDs, country, concurrency); err != nil {
+			return err
+		}
 		rows := make([]map[string]any, 0, len(appIDs))
 		for _, appID := range appIDs {
-			resp, _, err := client.AppDetails(commandContext(cmd), appID, country)
-			if err == nil {
-				seen[appID].Enriched = resp.Raw
-				seen[appID].MetadataFetchedAt = time.Now().UTC()
-			}
 			rows = append(rows, structToMap(*seen[appID]))
 		}
 		return writeOutput(rows)
@@ -108,4 +108,48 @@ func bestObservedRank(record *sensortower.CompetitorRecord) int {
 		}
 	}
 	return best
+}
+
+func enrichCompetitors(ctx context.Context, client *sensortower.Client, seen map[int64]*sensortower.CompetitorRecord, appIDs []int64, country string, concurrency int) error {
+	if len(appIDs) == 0 {
+		return nil
+	}
+	if concurrency <= 0 {
+		concurrency = 1
+	}
+	type result struct {
+		appID int64
+		resp  *sensortower.AppDetails
+		err   error
+	}
+	jobs := make(chan int64)
+	results := make(chan result, len(appIDs))
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			for appID := range jobs {
+				resp, _, err := client.AppDetails(ctx, appID, country)
+				results <- result{appID: appID, resp: resp, err: err}
+			}
+		}()
+	}
+	go func() {
+		defer close(jobs)
+		for _, appID := range appIDs {
+			jobs <- appID
+		}
+	}()
+
+	var completed int32
+	for range appIDs {
+		result := <-results
+		done := atomic.AddInt32(&completed, 1)
+		if result.err == nil && result.resp != nil {
+			seen[result.appID].Enriched = result.resp.Raw
+			seen[result.appID].MetadataFetchedAt = time.Now().UTC()
+		}
+		if len(appIDs) >= 10 && (done == 1 || done%10 == 0 || int(done) == len(appIDs)) {
+			_, _ = fmt.Fprintf(os.Stderr, "workflow competitors: enriched %d/%d apps\n", done, len(appIDs))
+		}
+	}
+	return nil
 }

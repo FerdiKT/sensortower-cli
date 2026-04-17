@@ -70,22 +70,7 @@ var contextsListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		names := make([]string, 0, len(cfg.Contexts))
-		for name := range cfg.Contexts {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		rows := make([]map[string]any, 0, len(names))
-		for _, name := range names {
-			ctx := cfg.Contexts[name]
-			rows = append(rows, map[string]any{
-				"name":       name,
-				"active":     cfg.ActiveContext == name,
-				"base_url":   ctx.BaseURL,
-				"has_cookie": ctx.Cookie != "",
-			})
-		}
-		return writeOutput(rows)
+		return writeOutput(buildContextRows(cfg))
 	},
 }
 
@@ -108,4 +93,32 @@ var contextsUseCmd = &cobra.Command{
 		_, err = fmt.Fprintf(os.Stdout, "active context: %s\n", name)
 		return err
 	},
+}
+
+func buildContextRows(cfg *config.Config) []map[string]any {
+	names := make([]string, 0, len(cfg.Contexts))
+	for name := range cfg.Contexts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	defaultCtx := cfg.EffectiveContext("")
+	rows := []map[string]any{{
+		"name":       "default",
+		"active":     cfg.ActiveContext == "",
+		"base_url":   defaultCtx.BaseURL,
+		"has_cookie": defaultCtx.Cookie != "",
+		"kind":       "default",
+	}}
+	for _, name := range names {
+		ctx := cfg.Contexts[name]
+		rows = append(rows, map[string]any{
+			"name":       name,
+			"active":     cfg.ActiveContext == name,
+			"base_url":   ctx.BaseURL,
+			"has_cookie": ctx.Cookie != "",
+			"kind":       "named",
+		})
+	}
+	return rows
 }
