@@ -11,6 +11,8 @@ permissions:
 jobs:
   build-and-release:
     runs-on: macos-latest
+    env:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,11 +36,11 @@ jobs:
           generate_release_notes: true
 
       - name: Update Homebrew formula
-        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        if: ${{ env.HOMEBREW_TAP_TOKEN != '' }}
         uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: sensortower
           homebrew-tap: FerdiKT/homebrew-tap
           download-url: https://github.com/FerdiKT/sensortower-cli/releases/download/${{ github.ref_name }}/sensortower_${{ steps.version.outputs.VERSION }}_darwin_arm64.tar.gz
         env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          COMMITTER_TOKEN: ${{ env.HOMEBREW_TAP_TOKEN }}
