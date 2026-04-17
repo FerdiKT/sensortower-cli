@@ -1,0 +1,194 @@
+<p align="center">
+  <img src="assets/hero-banner.svg" alt="sensortower CLI" width="820" />
+</p>
+
+<h1 align="center">sensortower</h1>
+
+<p align="center">
+  <strong>A JSON-first CLI for Sensor Tower iOS market data</strong><br />
+  Read-only · Scriptable · CI-friendly · Built for market intelligence workflows
+</p>
+
+<p align="center">
+  <a href="#-status"><img src="https://img.shields.io/badge/status-beta-yellow?style=flat-square" alt="Beta" /></a>
+  <a href="#-quickstart"><img src="https://img.shields.io/badge/quickstart-3_commands-brightgreen?style=flat-square" alt="Quickstart" /></a>
+  <a href="#-installation"><img src="https://img.shields.io/badge/go_install-ready-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go Install" /></a>
+  <a href="#-configuration"><img src="https://img.shields.io/badge/config-cookie_header_ready-blue?style=flat-square" alt="Config" /></a>
+  <a href="#-license"><img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square" alt="License" /></a>
+</p>
+
+---
+
+## ⚠️ Status
+
+> **This project is in early public beta.** The current release is intentionally small and read-only, focused on a few high-value Sensor Tower iOS endpoints. The HTTP/config layer already supports optional cookie/header injection for future session-backed usage, but no login automation is included in v1.
+
+---
+
+## ✨ Why sensortower?
+
+> Pull Sensor Tower data from your terminal without rebuilding ad-hoc scripts every time.
+
+| | |
+|---|---|
+| 📊 **Three useful starting endpoints** | Publisher apps, app details, and category rankings |
+| 🧰 **JSON-first output** | Pipe to `jq`, store snapshots, build quick analyses |
+| 🪶 **Small surface area** | Explicit commands for known endpoints, no generic wrapper noise |
+| 🔐 **Session-ready design** | Optional cookie + header injection via config/env |
+| 🚀 **Release-friendly** | Go binary, GitHub releases, Homebrew-ready workflow |
+
+---
+
+## 📦 Installation
+
+<details open>
+<summary><strong>Option 1 — Homebrew</strong> (recommended)</summary>
+
+```bash
+brew tap FerdiKT/tap
+brew install sensortower
+```
+
+</details>
+
+<details>
+<summary><strong>Option 2 — Go install</strong></summary>
+
+```bash
+go install github.com/ferdikt/sensortower-cli@latest
+```
+
+</details>
+
+<details>
+<summary><strong>Option 3 — Build from source</strong></summary>
+
+```bash
+git clone https://github.com/FerdiKT/sensortower-cli.git
+cd sensortower-cli
+make tidy
+make build VERSION=0.1.0
+./bin/sensortower version
+```
+
+</details>
+
+---
+
+## 🚀 Quickstart
+
+### 1️⃣ List a publisher's apps
+
+```bash
+sensortower publishers apps \
+  --publisher-id 1619264551 \
+  --limit 25 \
+  --offset 0 \
+  --sort-by downloads
+```
+
+### 2️⃣ Fetch a single app
+
+```bash
+sensortower apps get \
+  --app-id 6478631467 \
+  --country US
+```
+
+### 3️⃣ Fetch iOS category rankings
+
+```bash
+sensortower charts category-rankings \
+  --country US \
+  --category 0 \
+  --date 2026-04-16 \
+  --device iphone \
+  --limit 25
+```
+
+### JSON mode
+
+```bash
+sensortower charts category-rankings \
+  --country US \
+  --category 0 \
+  --date 2026-04-16 \
+  --device iphone \
+  --output json | jq '.data.free[0]'
+```
+
+---
+
+## 🗺️ Command Map
+
+| Group | Commands | Purpose |
+|---|---|---|
+| `publishers` | `apps` | List apps for a publisher |
+| `apps` | `get` | Fetch a single iOS app detail payload |
+| `charts` | `category-rankings` | Fetch free/grossing/paid rankings |
+| `version` | — | Print binary version |
+
+---
+
+## ⚙️ Configuration
+
+Default config path:
+
+```text
+~/Library/Application Support/sensortower/config.json
+```
+
+Example:
+
+```json
+{
+  "base_url": "https://app.sensortower.com",
+  "timeout_seconds": 30,
+  "output": "table",
+  "cookie": "sensor_tower_session=...",
+  "headers": {
+    "X-Custom-Header": "value"
+  }
+}
+```
+
+Environment overrides:
+
+```bash
+export SENSORTOWER_BASE_URL="https://app.sensortower.com"
+export SENSORTOWER_TIMEOUT_SECONDS=30
+export SENSORTOWER_OUTPUT=json
+export SENSORTOWER_COOKIE="sensor_tower_session=..."
+export SENSORTOWER_HEADERS_JSON='{"X-Custom-Header":"value"}'
+```
+
+Current global flags:
+
+```bash
+sensortower --config /path/to/config.json --output json ...
+```
+
+---
+
+## 🧪 Development
+
+```bash
+make tidy
+make test
+make build VERSION=0.1.0
+make dist VERSION=0.1.0
+```
+
+Smoke checks:
+
+```bash
+go run . publishers apps --publisher-id 1619264551 --output json
+go run . apps get --app-id 6478631467 --country US --output json
+go run . charts category-rankings --country US --category 0 --date 2026-04-16 --device iphone --output json
+```
+
+---
+
+## 📄 License
+
+MIT

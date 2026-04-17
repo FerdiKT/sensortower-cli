@@ -1,0 +1,24 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="520" fill="#07111F"/>
+  <rect x="42" y="42" width="1516" height="436" rx="26" fill="url(#bg)"/>
+  <circle cx="1320" cy="118" r="170" fill="#0C223D" fill-opacity="0.85"/>
+  <circle cx="1388" cy="388" r="150" fill="#123357" fill-opacity="0.55"/>
+  <path d="M185 332L308 142H430L308 332H185Z" fill="#1CC8A0"/>
+  <path d="M308 332L430 142H552L430 332H308Z" fill="#29E0B6"/>
+  <path d="M430 332L552 142H674L552 332H430Z" fill="#87F3DA"/>
+  <rect x="736" y="138" width="10" height="214" rx="5" fill="#7CD6F7"/>
+  <rect x="782" y="184" width="10" height="168" rx="5" fill="#7CD6F7" fill-opacity="0.7"/>
+  <rect x="828" y="112" width="10" height="240" rx="5" fill="#7CD6F7" fill-opacity="0.88"/>
+  <rect x="874" y="218" width="10" height="134" rx="5" fill="#7CD6F7" fill-opacity="0.58"/>
+  <text x="736" y="208" fill="#F5FBFF" font-family="SF Pro Display, Helvetica, Arial, sans-serif" font-size="78" font-weight="700">sensortower</text>
+  <text x="736" y="266" fill="#A9C3D9" font-family="SF Pro Text, Helvetica, Arial, sans-serif" font-size="28" font-weight="500">Terminal-first access to iOS market data</text>
+  <text x="736" y="318" fill="#7CD6F7" font-family="SF Mono, Menlo, Consolas, monospace" font-size="24">publishers.apps    apps.get    charts.category-rankings</text>
+  <rect x="736" y="350" width="340" height="44" rx="22" fill="#0A2037"/>
+  <text x="764" y="379" fill="#D8F7EF" font-family="SF Pro Text, Helvetica, Arial, sans-serif" font-size="22">JSON-first • CI-ready • Go binary</text>
+  <defs>
+    <linearGradient id="bg" x1="116" y1="84" x2="1494" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1B30"/>
+      <stop offset="1" stop-color="#102A49"/>
+    </linearGradient>
+  </defs>
+</svg>
