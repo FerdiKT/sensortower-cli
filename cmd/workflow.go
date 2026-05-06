@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(workflowCmd)
-	workflowCmd.AddCommand(workflowCompetitorsCmd)
+	workflowCmd.AddCommand(workflowCompetitorsCmd, workflowFreshEarnersCmd)
 	workflowCompetitorsCmd.Flags().String("country", "US", "Store country")
 	workflowCompetitorsCmd.Flags().String("categories", "", "Comma-separated category IDs")
 	workflowCompetitorsCmd.Flags().Int("top", 200, "Maximum unique apps to enrich")
@@ -23,6 +24,15 @@ func init() {
 	workflowCompetitorsCmd.Flags().String("date", time.Now().AddDate(0, 0, -1).Format("2006-01-02"), "Chart date in YYYY-MM-DD")
 	workflowCompetitorsCmd.Flags().Int("concurrency", 4, "Concurrent app metadata enrich requests")
 	_ = workflowCompetitorsCmd.MarkFlagRequired("categories")
+
+	workflowFreshEarnersCmd.Flags().String("country", "US", "Store country")
+	workflowFreshEarnersCmd.Flags().String("categories", "0", "Comma-separated category IDs (0 means all categories)")
+	workflowFreshEarnersCmd.Flags().String("device", "iphone", "Device type")
+	workflowFreshEarnersCmd.Flags().String("date", time.Now().AddDate(0, 0, -1).Format("2006-01-02"), "Chart date in YYYY-MM-DD")
+	workflowFreshEarnersCmd.Flags().Int("months", 1, "Release recency window in months")
+	workflowFreshEarnersCmd.Flags().Int64("min-revenue-usd", 10000, "Minimum last-month revenue in USD")
+	workflowFreshEarnersCmd.Flags().Int("top", 200, "Maximum unique ranked apps to inspect before filtering")
+	workflowFreshEarnersCmd.Flags().Int("concurrency", 4, "Concurrent app metadata enrich requests")
 }
 
 var workflowCmd = &cobra.Command{Use: "workflow", Short: "Higher-level workflows"}
@@ -82,6 +92,116 @@ var workflowCompetitorsCmd = &cobra.Command{
 		for _, appID := range appIDs {
 			rows = append(rows, structToMap(*seen[appID]))
 		}
+		return writeOutput(rows)
+	},
+}
+
+var workflowFreshEarnersCmd = &cobra.Command{
+	Use:   "fresh-earners",
+	Short: "Find recently released apps above a monthly revenue threshold",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		country, _ := cmd.Flags().GetString("country")
+		categoriesText, _ := cmd.Flags().GetString("categories")
+		device, _ := cmd.Flags().GetString("device")
+		date, _ := cmd.Flags().GetString("date")
+		months, _ := cmd.Flags().GetInt("months")
+		minRevenueUSD, _ := cmd.Flags().GetInt64("min-revenue-usd")
+		top, _ := cmd.Flags().GetInt("top")
+		concurrency, _ := cmd.Flags().GetInt("concurrency")
+		if months <= 0 {
+			return clierror.Wrap(11, "months must be greater than 0")
+		}
+		if minRevenueUSD < 0 {
+			return clierror.Wrap(11, "min-revenue-usd must be 0 or greater")
+		}
+		if top <= 0 {
+			return clierror.Wrap(11, "top must be greater than 0")
+		}
+		categories, err := parseInts(categoriesText)
+		if err != nil {
+			return clierror.Wrap(11, err.Error())
+		}
+		if len(categories) == 0 {
+			categories = []int{0}
+		}
+
+		seen := map[int64]*sensortower.CompetitorRecord{}
+		for _, category := range categories {
+			resp, _, err := client.CategoryRankings(commandContext(cmd), country, category, date, device, categoryRankingsPageCap, 0)
+			if err != nil {
+				return err
+			}
+			addCompetitorBucket(seen, category, "free", country, resp.Data.Free)
+			addCompetitorBucket(seen, category, "grossing", country, resp.Data.Grossing)
+			addCompetitorBucket(seen, category, "paid", country, resp.Data.Paid)
+		}
+
+		appIDs := make([]int64, 0, len(seen))
+		for appID := range seen {
+			appIDs = append(appIDs, appID)
+		}
+		sort.Slice(appIDs, func(i, j int) bool {
+			left := seen[appIDs[i]]
+			right := seen[appIDs[j]]
+			leftRank := bestObservedRank(left)
+			rightRank := bestObservedRank(right)
+			if leftRank != rightRank {
+				return leftRank < rightRank
+			}
+			return appIDs[i] < appIDs[j]
+		})
+		if len(appIDs) > top {
+			appIDs = appIDs[:top]
+		}
+		if err := enrichCompetitors(commandContext(cmd), client, seen, appIDs, country, concurrency); err != nil {
+			return err
+		}
+
+		cutoff := time.Now().AddDate(0, -months, 0)
+		minRevenueCents := minRevenueUSD * 100
+		rows := make([]map[string]any, 0, len(appIDs))
+		for _, appID := range appIDs {
+			record := seen[appID]
+			if record == nil || record.Enriched == nil {
+				continue
+			}
+			enriched := record.Enriched
+			revenueCents := int64FromAny(enriched["worldwide_last_month_revenue"], "value")
+			releaseAt := firstTimestamp(enriched["release_date"], enriched["worldwide_release_date"], enriched["country_release_date"])
+			if releaseAt.IsZero() || releaseAt.Before(cutoff) || revenueCents < minRevenueCents {
+				continue
+			}
+
+			row := map[string]any{
+				"app_id":                  record.AppID,
+				"name":                    firstNonEmptyString(record.Name, stringFromAny(enriched["name"])),
+				"publisher_name":          firstNonEmptyString(record.PublisherName, stringFromAny(enriched["publisher_name"])),
+				"country":                 country,
+				"release_date":            releaseAt.UTC().Format(time.RFC3339),
+				"months_window":           months,
+				"monthly_revenue_usd":     float64(revenueCents) / 100.0,
+				"monthly_revenue_cents":   revenueCents,
+				"min_revenue_usd":         minRevenueUSD,
+				"matched_categories":      record.Categories,
+				"matched_ranking_buckets": record.Buckets,
+				"observed_ranks":          record.ObservedRanks,
+				"enriched":                enriched,
+			}
+			rows = append(rows, row)
+		}
+
+		sort.Slice(rows, func(i, j int) bool {
+			left := numericFromAny(rows[i]["monthly_revenue_cents"])
+			right := numericFromAny(rows[j]["monthly_revenue_cents"])
+			if left != right {
+				return left > right
+			}
+			return int64FromAny(rows[i]["app_id"]) < int64FromAny(rows[j]["app_id"])
+		})
 		return writeOutput(rows)
 	},
 }
@@ -152,4 +272,66 @@ func enrichCompetitors(ctx context.Context, client *sensortower.Client, seen map
 		}
 	}
 	return nil
+}
+
+func int64FromAny(v any, path ...string) int64 {
+	current := v
+	for _, key := range path {
+		node, ok := current.(map[string]any)
+		if !ok {
+			return 0
+		}
+		current = node[key]
+	}
+	switch n := current.(type) {
+	case int64:
+		return n
+	case int:
+		return int64(n)
+	case float64:
+		return int64(n)
+	}
+	return 0
+}
+
+func stringFromAny(v any) string {
+	s, _ := v.(string)
+	return strings.TrimSpace(s)
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func firstTimestamp(values ...any) time.Time {
+	for _, value := range values {
+		ts := int64FromAny(value)
+		if ts <= 0 {
+			continue
+		}
+		// Sensor Tower payloads can return epoch in seconds or milliseconds.
+		if ts >= 1_000_000_000_000 {
+			return time.UnixMilli(ts)
+		}
+		return time.Unix(ts, 0)
+	}
+	return time.Time{}
+}
+
+func numericFromAny(v any) float64 {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case int64:
+		return float64(n)
+	case int:
+		return float64(n)
+	}
+	return 0
 }
