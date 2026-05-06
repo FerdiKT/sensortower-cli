@@ -117,6 +117,23 @@ sensortower charts category-rankings \
   --output json | jq '.data.free[0]'
 ```
 
+### Find fresh earners (default: last 1 month, >= $10k)
+
+```bash
+sensortower workflow fresh-earners --output json
+```
+
+Custom window/threshold:
+
+```bash
+sensortower workflow fresh-earners \
+  --months 2 \
+  --min-revenue-usd 25000 \
+  --categories 0 \
+  --country US \
+  --output json
+```
+
 ---
 
 ## 🗺️ Command Map
@@ -128,7 +145,7 @@ sensortower charts category-rankings \
 | `apps` | `get` | Fetch a single iOS app detail payload |
 | `charts` | `category-rankings` | Fetch free/grossing/paid rankings |
 | `contexts` | `add` · `list` · `use` | Manage named configs for multiple setups |
-| `workflow` | `competitors` | Pull rankings, dedupe competitors, enrich app metadata |
+| `workflow` | `competitors` · `fresh-earners` | Pull rankings, dedupe competitors, enrich app metadata, and find recently released high-earning apps |
 | `aso` | `metadata-audit` · `keyword-gap` | Generate ASO-oriented diagnostics |
 | `agent` | `install-skill` · `link-skill` · `show-skill-path` | Install or link the bundled Codex skill |
 | `version` | — | Print binary version |
