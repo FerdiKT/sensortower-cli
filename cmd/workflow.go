@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -100,6 +101,10 @@ var workflowFreshEarnersCmd = &cobra.Command{
 	Use:   "fresh-earners",
 	Short: "Find recently released apps above a monthly revenue threshold",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// This workflow is app-details heavy; enable 429 retries by default unless user explicitly disables/overrides.
+		if !cmd.Flags().Changed("retry-429") {
+			opts.Retry429 = true
+		}
 		client, err := newClient()
 		if err != nil {
 			return err
@@ -260,16 +265,31 @@ func enrichCompetitors(ctx context.Context, client *sensortower.Client, seen map
 	}()
 
 	var completed int32
+	failed := 0
+	failureSamples := make([]string, 0, 5)
 	for range appIDs {
 		result := <-results
 		done := atomic.AddInt32(&completed, 1)
 		if result.err == nil && result.resp != nil {
 			seen[result.appID].Enriched = result.resp.Raw
 			seen[result.appID].MetadataFetchedAt = time.Now().UTC()
+		} else if result.err != nil {
+			failed++
+			if len(failureSamples) < 5 {
+				var httpErr *sensortower.HTTPError
+				if errors.As(result.err, &httpErr) {
+					failureSamples = append(failureSamples, fmt.Sprintf("%d(status=%d,retry_after=%ds)", result.appID, httpErr.StatusCode, httpErr.RetryAfterSeconds))
+				} else {
+					failureSamples = append(failureSamples, fmt.Sprintf("%d(%v)", result.appID, result.err))
+				}
+			}
 		}
 		if len(appIDs) >= 10 && (done == 1 || done%10 == 0 || int(done) == len(appIDs)) {
 			_, _ = fmt.Fprintf(os.Stderr, "workflow competitors: enriched %d/%d apps\n", done, len(appIDs))
 		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("failed to enrich %d/%d apps; sample=%s (try --retry-429 --retry-max 8 --retry-wait 60 and/or lower --concurrency)", failed, len(appIDs), strings.Join(failureSamples, ", "))
 	}
 	return nil
 }
