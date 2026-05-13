@@ -101,9 +101,15 @@ var workflowFreshEarnersCmd = &cobra.Command{
 	Use:   "fresh-earners",
 	Short: "Find recently released apps above a monthly revenue threshold",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// This workflow is app-details heavy; enable 429 retries by default unless user explicitly disables/overrides.
+		// This workflow is app-details heavy; use safer rate-limit defaults unless user explicitly overrides.
 		if !cmd.Flags().Changed("retry-429") {
 			opts.Retry429 = true
+		}
+		if !cmd.Flags().Changed("retry-max") {
+			opts.RetryMax = 20
+		}
+		if !cmd.Flags().Changed("retry-wait") {
+			opts.RetryWait = 15
 		}
 		client, err := newClient()
 		if err != nil {
@@ -117,6 +123,9 @@ var workflowFreshEarnersCmd = &cobra.Command{
 		minRevenueUSD, _ := cmd.Flags().GetInt64("min-revenue-usd")
 		top, _ := cmd.Flags().GetInt("top")
 		concurrency, _ := cmd.Flags().GetInt("concurrency")
+		if !cmd.Flags().Changed("concurrency") {
+			concurrency = 1
+		}
 		if months <= 0 {
 			return clierror.Wrap(11, "months must be greater than 0")
 		}
