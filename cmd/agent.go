@@ -35,6 +35,7 @@ Use this skill for repository-local Sensor Tower CLI work.
 - Use ` + "`sensortower apps get`" + ` for a full app detail payload.
 - Use ` + "`sensortower charts category-rankings`" + ` for free, grossing, and paid rankings.
 - Use ` + "`sensortower workflow fresh-earners`" + ` to find newly released apps above a revenue threshold (defaults: last 1 month and >= $10k).
+- Expect ` + "`fresh-earners`" + ` JSON output to include ` + "`data`" + `, ` + "`warnings`" + `, and ` + "`meta`" + `; partial enrich failures are warnings, not fatal.
 - Add ` + "`--output json`" + ` for agent consumption.
 
 ## Config Pattern

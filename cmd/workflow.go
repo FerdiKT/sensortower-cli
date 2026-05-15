@@ -171,9 +171,7 @@ var workflowFreshEarnersCmd = &cobra.Command{
 		if len(appIDs) > top {
 			appIDs = appIDs[:top]
 		}
-		if err := enrichCompetitors(commandContext(cmd), client, seen, appIDs, country, concurrency); err != nil {
-			return err
-		}
+		warnings := enrichCompetitorsWithWarnings(commandContext(cmd), client, seen, appIDs, country, concurrency, "workflow fresh-earners")
 
 		cutoff := time.Now().AddDate(0, -months, 0)
 		minRevenueCents := minRevenueUSD * 100
@@ -216,7 +214,15 @@ var workflowFreshEarnersCmd = &cobra.Command{
 			}
 			return int64FromAny(rows[i]["app_id"]) < int64FromAny(rows[j]["app_id"])
 		})
-		return writeOutput(rows)
+		return writeOutput(map[string]any{
+			"data":     rows,
+			"warnings": warnings,
+			"meta": map[string]any{
+				"inspected":       len(appIDs),
+				"enriched":        len(appIDs) - len(warnings),
+				"failed_enriches": len(warnings),
+			},
+		})
 	},
 }
 
@@ -245,8 +251,24 @@ func bestObservedRank(record *sensortower.CompetitorRecord) int {
 }
 
 func enrichCompetitors(ctx context.Context, client *sensortower.Client, seen map[int64]*sensortower.CompetitorRecord, appIDs []int64, country string, concurrency int) error {
+	warnings := enrichCompetitorsWithWarnings(ctx, client, seen, appIDs, country, concurrency, "workflow competitors")
+	if len(warnings) > 0 {
+		return fmt.Errorf("failed to enrich %d/%d apps; sample=%s (try --retry-429 --retry-max 8 --retry-wait 60 and/or lower --concurrency)", len(warnings), len(appIDs), sampleEnrichWarnings(warnings))
+	}
+	return nil
+}
+
+type enrichWarning struct {
+	AppID             int64  `json:"app_id"`
+	Error             string `json:"error"`
+	StatusCode        int    `json:"status_code,omitempty"`
+	RetryAfterSeconds int    `json:"retry_after_seconds,omitempty"`
+	URL               string `json:"url,omitempty"`
+}
+
+func enrichCompetitorsWithWarnings(ctx context.Context, client *sensortower.Client, seen map[int64]*sensortower.CompetitorRecord, appIDs []int64, country string, concurrency int, progressLabel string) []enrichWarning {
 	if len(appIDs) == 0 {
-		return nil
+		return []enrichWarning{}
 	}
 	if concurrency <= 0 {
 		concurrency = 1
@@ -274,8 +296,7 @@ func enrichCompetitors(ctx context.Context, client *sensortower.Client, seen map
 	}()
 
 	var completed int32
-	failed := 0
-	failureSamples := make([]string, 0, 5)
+	warnings := make([]enrichWarning, 0)
 	for range appIDs {
 		result := <-results
 		done := atomic.AddInt32(&completed, 1)
@@ -283,24 +304,45 @@ func enrichCompetitors(ctx context.Context, client *sensortower.Client, seen map
 			seen[result.appID].Enriched = result.resp.Raw
 			seen[result.appID].MetadataFetchedAt = time.Now().UTC()
 		} else if result.err != nil {
-			failed++
-			if len(failureSamples) < 5 {
-				var httpErr *sensortower.HTTPError
-				if errors.As(result.err, &httpErr) {
-					failureSamples = append(failureSamples, fmt.Sprintf("%d(status=%d,retry_after=%ds)", result.appID, httpErr.StatusCode, httpErr.RetryAfterSeconds))
-				} else {
-					failureSamples = append(failureSamples, fmt.Sprintf("%d(%v)", result.appID, result.err))
-				}
-			}
+			warnings = append(warnings, enrichWarningFromError(result.appID, result.err))
+		} else {
+			warnings = append(warnings, enrichWarning{AppID: result.appID, Error: "empty app details response"})
 		}
 		if len(appIDs) >= 10 && (done == 1 || done%10 == 0 || int(done) == len(appIDs)) {
-			_, _ = fmt.Fprintf(os.Stderr, "workflow competitors: enriched %d/%d apps\n", done, len(appIDs))
+			_, _ = fmt.Fprintf(os.Stderr, "%s: enriched %d/%d apps\n", progressLabel, done, len(appIDs))
 		}
 	}
-	if failed > 0 {
-		return fmt.Errorf("failed to enrich %d/%d apps; sample=%s (try --retry-429 --retry-max 8 --retry-wait 60 and/or lower --concurrency)", failed, len(appIDs), strings.Join(failureSamples, ", "))
+	return warnings
+}
+
+func enrichWarningFromError(appID int64, err error) enrichWarning {
+	warning := enrichWarning{AppID: appID, Error: err.Error()}
+	var httpErr *sensortower.HTTPError
+	if errors.As(err, &httpErr) {
+		warning.StatusCode = httpErr.StatusCode
+		warning.RetryAfterSeconds = httpErr.RetryAfterSeconds
+		warning.URL = httpErr.URL
 	}
-	return nil
+	return warning
+}
+
+func sampleEnrichWarnings(warnings []enrichWarning) string {
+	if len(warnings) == 0 {
+		return ""
+	}
+	limit := len(warnings)
+	if limit > 5 {
+		limit = 5
+	}
+	samples := make([]string, 0, limit)
+	for _, warning := range warnings[:limit] {
+		if warning.StatusCode > 0 {
+			samples = append(samples, fmt.Sprintf("%d(status=%d,retry_after=%ds)", warning.AppID, warning.StatusCode, warning.RetryAfterSeconds))
+			continue
+		}
+		samples = append(samples, fmt.Sprintf("%d(%s)", warning.AppID, warning.Error))
+	}
+	return strings.Join(samples, ", ")
 }
 
 func int64FromAny(v any, path ...string) int64 {

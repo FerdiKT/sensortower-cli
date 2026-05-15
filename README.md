@@ -123,6 +123,8 @@ sensortower charts category-rankings \
 sensortower workflow fresh-earners --output json
 ```
 
+The JSON payload contains `data`, `warnings`, and `meta`; if some app detail enrich requests hit 429 or another transient error, successful enriches are still filtered and returned under `data`.
+
 Custom window/threshold:
 
 ```bash
